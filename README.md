@@ -19,9 +19,9 @@ brew install sunfmin/tap/flux-toolchain
   fail (`scripts/smoke.sh`), and publishes a release named by the UTC date,
   `YYYY.MM.DD`, holding the tarball, `inputs.json` and the formula
   (`scripts/formula.sh`). `latest.json` records the newest version.
-- **The tap** (sunfmin/homebrew-tap) copies the newest release's
-  `flux-toolchain.rb` into `Formula/` on its own schedule, so this repo
-  needs no token for it.
+- **The tap.** The same run pushes the formula to sunfmin/homebrew-tap's
+  `Formula/flux-toolchain.rb`, with `TAP_DEPLOY_KEY`: a deploy key that can
+  write that one repo.
 - **Any Homebrew prefix.** The formula places prebuilt files; it installs no
   bottle, so it works under `~/homebrew` as well as `/opt/homebrew`.
 
