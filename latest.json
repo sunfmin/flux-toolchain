@@ -1,0 +1,7 @@
+{
+  "flux": "ef6af17f647cf98c860e18e90c36d1f1b69849ff",
+  "rust": "nightly-2026-10-22",
+  "fixpoint": "0b924442ce26a8f270bffac18ba6295bc7411646",
+  "z3": "z3-5.4.1",
+  "version": "2026.11.12"
+}
