@@ -9,8 +9,9 @@ toolchain="@@TOOLCHAIN@@"
 PATH="$libexec/bin:$HOME/.cargo/bin:$PATH"
 : "${FLUX_SYSROOT:=$libexec/sysroot}"
 export PATH FLUX_SYSROOT
-case "${1:-}" in
---version | -V) ;;
+# `cargo flux --version` reaches cargo-flux as `flux --version`.
+case "${1:-} ${2:-}" in
+--version* | -V* | "flux --version" | "flux -V") ;;
 *)
     if ! command -v rustup >/dev/null 2>&1; then
         echo "flux-toolchain: Flux runs on the Rust $toolchain toolchain, and rustup, which supplies it, is not on the PATH: install it from https://rustup.rs" >&2

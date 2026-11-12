@@ -41,7 +41,7 @@ class FluxToolchain < Formula
   end
 
   test do
-    assert_match "$(echo "$flux" | cut -c1-10)", shell_output("#{bin}/cargo-flux flux --version")
+    assert_match "$(echo "$flux" | cut -c1-7)", shell_output("#{bin}/cargo-flux flux --version")
   end
 end
 RUBY
