@@ -28,7 +28,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: scripts/inputs.sh > inputs.json && cat inputs.json
       - id: decide
         run: |
@@ -49,7 +49,7 @@ jobs:
             fi
           fi
           echo "build=true" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: inputs
           path: inputs.json
@@ -63,8 +63,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.decide.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: inputs
       - run: scripts/build.sh inputs.json "$VERSION" dist
