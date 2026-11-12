@@ -1,0 +1,11 @@
+[package]
+name = "smoke"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[package.metadata.flux]
+enabled = true
+
+[dependencies]
+flux-rs = { git = "https://github.com/flux-rs/flux.git", rev = "@@FLUX@@" }

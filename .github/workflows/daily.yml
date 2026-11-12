@@ -1,0 +1,88 @@
+# Once a day: read the newest inputs, and when they differ from the last
+# version's, build, check and publish a version named by the UTC date.
+name: daily
+
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Build even when the inputs equal the last version's
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily
+  cancel-in-progress: false
+
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+      version: ${{ steps.decide.outputs.version }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/inputs.sh > inputs.json && cat inputs.json
+      - id: decide
+        run: |
+          version=$(date -u +%Y.%m.%d)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "$version" >/dev/null 2>&1; then
+            echo "$version is already published: one version a day"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          last=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          if [ -n "$last" ] && [ "${{ inputs.force }}" != true ]; then
+            gh release download "$last" --pattern inputs.json --output last.json
+            if jq -S . last.json | cmp -s - <(jq -S . inputs.json); then
+              echo "inputs equal those of $last: nothing to publish"
+              echo "build=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "build=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inputs
+          path: inputs.json
+
+  build:
+    needs: decide
+    if: needs.decide.outputs.build == 'true'
+    runs-on: macos-15
+    timeout-minutes: 150
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.decide.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: inputs
+      - run: scripts/build.sh inputs.json "$VERSION" dist
+      - run: scripts/smoke.sh "dist/flux-toolchain-$VERSION-macos-arm64.tar.gz" inputs.json
+      - run: scripts/formula.sh "$VERSION" "dist/flux-toolchain-$VERSION-macos-arm64.tar.gz" inputs.json > dist/flux-toolchain.rb
+      - name: Publish
+        run: |
+          cp inputs.json dist/inputs.json
+          notes=$(jq -r '"Flux \(.flux)\nRust \(.rust)\nliquid-fixpoint \(.fixpoint)\n\(.z3)"' inputs.json)
+          gh release create "$VERSION" --title "$VERSION" --notes "$notes" --latest \
+            "dist/flux-toolchain-$VERSION-macos-arm64.tar.gz" dist/inputs.json dist/flux-toolchain.rb
+      # A commit a version keeps the schedule alive: GitHub turns off the
+      # schedule of a public repo after 60 days with no commit.
+      - name: Record the version
+        run: |
+          jq --arg version "$VERSION" '. + {version: $version}' inputs.json > latest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest.json
+          git commit -m "$VERSION"
+          git push origin HEAD:main
