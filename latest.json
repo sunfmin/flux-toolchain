@@ -3,5 +3,6 @@
   "rust": "nightly-2026-10-22",
   "fixpoint": "0b924442ce26a8f270bffac18ba6295bc7411646",
   "z3": "z3-5.3.3",
-  "version": "2026.11.14"
+  "cargo": "v0.102.0-9",
+  "version": "2026.11.15"
 }
