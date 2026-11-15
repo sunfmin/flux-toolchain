@@ -6,9 +6,13 @@
 #   libexec/bin/cargo-flux, flux    Flux's own binaries, built from source
 #   libexec/bin/fixpoint            liquid-fixpoint's nightly binary
 #   libexec/bin/z3                  z3's release binary
-#   libexec/sysroot/                flux-driver and Flux's precompiled libraries
+#   libexec/bin/cargo               huacnlee/cargo's release binary, the cargo
+#                                   cargo-flux runs
+#   libexec/sysroot/                Flux's precompiled libraries, flux-driver-real
+#                                   (Flux's driver) and flux-driver in front of it
+#                                   (scripts/driver-shim.c)
 #   inputs.json                     what it was built from
-# Flux publishes no binaries, so it is the one part built here; the other two
+# Flux publishes no binaries, so it is the one part built here; the others
 # are upstream's own builds, repackaged.
 set -eu
 inputs=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
@@ -25,6 +29,7 @@ flux=$(read_input flux)
 rust=$(read_input rust)
 fixpoint=$(read_input fixpoint)
 z3=$(read_input z3)
+cargo=$(read_input cargo)
 work=$(mktemp -d "${TMPDIR:-/tmp}/flux-toolchain.XXXXXX")
 stage="$work/flux-toolchain"
 mkdir -p "$stage/bin" "$stage/libexec/bin"
@@ -39,6 +44,8 @@ cargo_bin="${CARGO_HOME:-$HOME/.cargo}/bin"
 (cd "$work/flux" && env -u RUSTUP_TOOLCHAIN FLUX_HOME="$work/flux-home" cargo xtask install)
 cp "$cargo_bin/cargo-flux" "$cargo_bin/flux" "$stage/libexec/bin/"
 cp -R "$work/flux-home/sysroot" "$stage/libexec/sysroot"
+mv "$stage/libexec/sysroot/flux-driver" "$stage/libexec/sysroot/flux-driver-real"
+cc -O2 -Wall -Werror -o "$stage/libexec/sysroot/flux-driver" "$here/driver-shim.c"
 
 echo "build: liquid-fixpoint nightly $fixpoint" >&2
 curl -fsSL "https://github.com/ucsd-progsys/liquid-fixpoint/releases/download/nightly/fixpoint-aarch64-apple-darwin.tar.gz" |
@@ -60,6 +67,19 @@ z3_zip=$(gh api "repos/Z3Prover/z3/releases/tags/$z3" \
 curl -fsSL -o "$work/z3.zip" "$z3_zip"
 unzip -q "$work/z3.zip" -d "$work/z3"
 cp "$work"/z3/*/bin/z3 "$stage/libexec/bin/z3"
+
+echo "build: huacnlee/cargo $cargo" >&2
+cargo_tar="cargo-${cargo#v}-aarch64-apple-darwin.tar.gz"
+cargo_url="https://github.com/huacnlee/cargo/releases/download/$cargo"
+curl -fsSL -o "$work/$cargo_tar" "$cargo_url/$cargo_tar"
+curl -fsSL -o "$work/cargo.sums" "$cargo_url/SHA256SUMS"
+(cd "$work" && grep " $cargo_tar\$" cargo.sums | shasum -a 256 -c -) >&2 || {
+    echo "build: $cargo_tar does not match the release's SHA256SUMS" >&2
+    exit 1
+}
+mkdir "$work/cargo"
+tar -xzf "$work/$cargo_tar" -C "$work/cargo"
+cp "$work/cargo/cargo" "$stage/libexec/bin/cargo"
 
 for b in cargo-flux flux; do
     sed "s|@@TOOLCHAIN@@|$rust|" "$here/wrapper.sh" >"$stage/bin/$b"
