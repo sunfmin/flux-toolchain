@@ -33,12 +33,19 @@ jobs:
       - id: decide
         run: |
           version=$(date -u +%Y.%m.%d)
-          echo "version=$version" >> "$GITHUB_OUTPUT"
           if gh release view "$version" >/dev/null 2>&1; then
-            echo "$version is already published: one version a day"
-            echo "build=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            # One scheduled version a day; a forced run publishes the day's
+            # next one, YYYY.MM.DD.N.
+            if [ "${{ inputs.force }}" != true ]; then
+              echo "$version is already published: one version a day"
+              echo "build=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            n=1
+            while gh release view "$version.$n" >/dev/null 2>&1; do n=$((n + 1)); done
+            version="$version.$n"
           fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           last=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
           if [ -n "$last" ] && [ "${{ inputs.force }}" != true ]; then
             gh release download "$last" --pattern inputs.json --output last.json
