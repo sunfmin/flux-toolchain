@@ -12,6 +12,11 @@ export PATH FLUX_SYSROOT
 # The formula decides which huacnlee/cargo runs; it does not update itself.
 CARGO_FORK_AUTO_UPDATE=0
 export CARGO_FORK_AUTO_UPDATE
+# huacnlee/cargo turns on fine-grain locking by default, and concurrent
+# builds sharing ~/.cargo/targets/shared-deps then deadlock on its unit locks
+# (ADR 0002). This turns it off.
+__CARGO_TEMPORARY_FINE_GRAIN_LOCKING_OPT_OUT=1
+export __CARGO_TEMPORARY_FINE_GRAIN_LOCKING_OPT_OUT
 # `cargo flux --version` reaches cargo-flux as `flux --version`.
 case "${1:-} ${2:-}" in
 --version* | -V* | "flux --version" | "flux -V") ;;
