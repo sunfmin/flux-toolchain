@@ -1,8 +1,8 @@
 {
-  "flux": "ac24831e4f3dc570ad991751ff65bea0826ed446",
-  "rust": "nightly-2026-11-12",
+  "flux": "828d6086c94a1171fce81fab449ace2abc9e1540",
+  "rust": "nightly-2026-11-19",
   "fixpoint": "0b924442ce26a8f270bffac18ba6295bc7411646",
   "z3": "z3-5.3.3",
   "cargo": "v0.103.0-1",
-  "version": "2026.11.20"
+  "version": "2026.11.22"
 }
